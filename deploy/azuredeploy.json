@@ -1,0 +1,102 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "siteName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of Azure Web App"
+      }
+    },
+    "servicePlanName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Service Plan"
+      }
+    }
+  },
+  "variables": {
+    "appSiteName": "[parameters('siteName')]",
+    "appServicePlanWorkerSize": 0
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-08-01",
+      "name": "[parameters('servicePlanName')]",
+      "type": "Microsoft.Web/serverfarms",
+      "sku": {
+        "name": "S1",
+        "tier": "Standard",
+        "size": "S1",
+        "family": "S",
+        "capacity": 1
+      },
+      "kind": "app",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "name": "[parameters('servicePlanName')]",
+        "workerSize": "[variables('appServicePlanWorkerSize')]",
+        "numberOfWorkers": 1
+      }
+    },
+    {
+      "apiVersion": "2015-08-01",
+      "name": "[variables('appSiteName')]",
+      "type": "Microsoft.Web/sites",
+      "kind": "app",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('servicePlanName'))]"
+      ],
+      "properties": {
+        "name": "[variables('appSiteName')]",
+        "serverFarmId": "[parameters('servicePlanName')]"
+      },
+      "resources": [
+        {
+          "apiVersion": "2015-08-01",
+          "name": "python2713x64",
+          "type": "siteextensions",
+          "properties": {},
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites', variables('appSiteName'))]",
+            "[resourceId('Microsoft.Web/sites/config', variables('appSiteName'), 'web')]"
+          ]
+        },
+        {
+          "apiVersion": "2015-08-01",
+          "name": "web",
+          "type": "config",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites', variables('appSiteName'))]"
+          ],
+          "properties": {
+            "pythonVersion": "",
+            "netFrameworkVersion": "v4.0",
+            "managedPipelineMode": 0,
+            "remoteDebuggingEnabled": false,
+            "use32BitWorkerProcess": true,
+            "webSocketsEnabled": false,
+            "alwaysOn": true,
+            "requestTracingEnabled": true,
+            "httpLoggingEnabled": true,
+            "logsDirectorySizeLimit": 35,
+            "detailedErrorLoggingEnabled": true,
+            "scmType": "None"
+          }
+        },
+        {
+          "name": "appsettings",
+          "type": "config",
+          "apiVersion": "2015-08-01",
+          "tags": {
+            "displayName": "WebAppSettings"
+          },
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites', variables('appSiteName'))]"
+          ]
+        }
+      ]
+    }
+  ]
+}
